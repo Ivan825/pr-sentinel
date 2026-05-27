@@ -1,0 +1,177 @@
+from collections import defaultdict
+
+from pr_sentinel.core.models import AnalysisResult, Finding
+
+
+class MarkdownReportGenerator:
+    def generate(self, result: AnalysisResult) -> str:
+        lines: list[str] = []
+
+        lines.extend(self._header(result))
+        lines.append("")
+        lines.extend(self._risk_section(result))
+        lines.append("")
+        lines.extend(self._findings_section(result))
+        lines.append("")
+        lines.extend(self._test_recommendations_section(result))
+        lines.append("")
+        lines.extend(self._footer())
+
+        return "\n".join(lines).strip() + "\n"
+
+    def _header(self, result: AnalysisResult) -> list[str]:
+        pr = result.pr
+
+        lines = [
+            "# PRSentinel Risk Report",
+            "",
+            f"**Repository:** `{pr.repo_full_name}`",
+            f"**Pull Request:** #{pr.pr_number} — {pr.title}",
+            f"**Author:** `{pr.author}`",
+            f"**Branches:** `{pr.base_branch}` ← `{pr.head_branch}`",
+        ]
+
+        if pr.html_url:
+            lines.append(f"**URL:** {pr.html_url}")
+
+        return lines
+
+    def _risk_section(self, result: AnalysisResult) -> list[str]:
+        if not result.risk_score:
+            return [
+                "## Risk Summary",
+                "",
+                "**Risk:** Not calculated",
+            ]
+
+        risk = result.risk_score
+
+        lines = [
+            "## Risk Summary",
+            "",
+            f"**Overall Risk:** `{risk.band.value}` — **{risk.score}/100**",
+            f"**Deterministic Score:** `{risk.deterministic_score}/100`",
+            f"**AI Adjustment:** `{risk.ai_adjustment}`",
+        ]
+
+        if risk.ai_adjustment_reasons:
+            lines.append("")
+            lines.append("**AI Adjustment Reasons:**")
+            for reason in risk.ai_adjustment_reasons:
+                lines.append(f"- {reason}")
+
+        if risk.breakdown:
+            lines.append("")
+            lines.append("### Risk Breakdown")
+            lines.append("")
+            lines.append("| Category | Contribution |")
+            lines.append("|---|---:|")
+
+            for category, contribution in sorted(
+                risk.breakdown.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            ):
+                lines.append(f"| {category} | +{contribution} |")
+
+        return lines
+
+    def _findings_section(self, result: AnalysisResult) -> list[str]:
+        lines = [
+            "## Findings",
+            "",
+        ]
+
+        if not result.findings:
+            lines.append("No findings detected by current deterministic rules.")
+            return lines
+
+        grouped = self._group_findings_by_severity(result.findings)
+
+        severity_order = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]
+
+        for severity in severity_order:
+            findings = grouped.get(severity, [])
+
+            if not findings:
+                continue
+
+            lines.append(f"### {severity}")
+            lines.append("")
+
+            for finding in findings:
+                lines.extend(self._finding_block(finding))
+                lines.append("")
+
+        return lines
+
+    def _finding_block(self, finding: Finding) -> list[str]:
+        location = finding.file_path
+
+        if finding.line_number is not None:
+            location = f"{location}:{finding.line_number}"
+
+        lines = [
+            f"#### {finding.title}",
+            "",
+            f"- **Rule:** `{finding.rule_id}`",
+            f"- **Source:** `{finding.source}`",
+            f"- **Category:** `{finding.category.value}`",
+            f"- **Location:** `{location}`",
+            f"- **Confidence:** `{finding.confidence:.2f}`",
+            f"- **Message:** {finding.message}",
+        ]
+
+        if finding.evidence:
+            lines.append("- **Evidence:**")
+            lines.append("")
+            lines.append("```text")
+            lines.append(finding.evidence)
+            lines.append("```")
+
+        if finding.recommendation:
+            lines.append(f"- **Recommendation:** {finding.recommendation}")
+
+        return lines
+
+    def _test_recommendations_section(self, result: AnalysisResult) -> list[str]:
+        lines = [
+            "## Test Recommendations",
+            "",
+        ]
+
+        if not result.test_recommendations:
+            lines.append("No targeted test recommendations generated yet.")
+            return lines
+
+        for recommendation in result.test_recommendations:
+            lines.append(f"### `{recommendation.source_file}`")
+            lines.append("")
+            lines.append(f"**Reason:** {recommendation.reason}")
+            lines.append("")
+            lines.append("Recommended tests:")
+
+            for test in recommendation.recommended_tests:
+                lines.append(f"- `{test}`")
+
+            lines.append("")
+
+        return lines
+
+    def _footer(self) -> list[str]:
+        return [
+            "---",
+            "",
+            "_Generated by PRSentinel._",
+        ]
+
+    def _group_findings_by_severity(
+        self,
+        findings: list[Finding],
+    ) -> dict[str, list[Finding]]:
+        grouped: dict[str, list[Finding]] = defaultdict(list)
+
+        for finding in findings:
+            grouped[finding.severity.value].append(finding)
+
+        return dict(grouped)

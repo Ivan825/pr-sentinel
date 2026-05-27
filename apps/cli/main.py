@@ -1,3 +1,7 @@
+from enum import StrEnum
+from pathlib import Path
+from typing import Annotated
+
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -8,6 +12,8 @@ from pr_sentinel.github.client import GitHubClientError
 from pr_sentinel.github.pr_fetcher import PullRequestFetcher
 from pr_sentinel.reports.analysis_console import print_analysis_result
 from pr_sentinel.reports.console import print_pull_request_summary
+from pr_sentinel.reports.json_report import JsonReportGenerator
+from pr_sentinel.reports.markdown import MarkdownReportGenerator
 
 app = typer.Typer(
     name="pr-sentinel",
@@ -15,6 +21,12 @@ app = typer.Typer(
 )
 
 console = Console()
+
+
+class OutputFormat(StrEnum):
+    CONSOLE = "console"
+    MARKDOWN = "markdown"
+    JSON = "json"
 
 
 @app.command()
@@ -48,18 +60,22 @@ def doctor() -> None:
 
 @app.command("fetch-pr")
 def fetch_pr(
-    repo: str = typer.Option(
-        ...,
-        "--repo",
-        "-r",
-        help="GitHub repository in owner/name format, for example fastapi/fastapi",
-    ),
-    pr: int = typer.Option(
-        ...,
-        "--pr",
-        "-p",
-        help="Pull request number",
-    ),
+    repo: Annotated[
+        str,
+        typer.Option(
+            "--repo",
+            "-r",
+            help="GitHub repository in owner/name format, for example fastapi/fastapi",
+        ),
+    ],
+    pr: Annotated[
+        int,
+        typer.Option(
+            "--pr",
+            "-p",
+            help="Pull request number",
+        ),
+    ],
 ) -> None:
     """Fetch GitHub pull request metadata and changed files."""
     try:
@@ -74,23 +90,45 @@ def fetch_pr(
 
 @app.command("analyze-pr")
 def analyze_pr(
-    repo: str = typer.Option(
-        ...,
-        "--repo",
-        "-r",
-        help="GitHub repository in owner/name format, for example fastapi/fastapi",
-    ),
-    pr: int = typer.Option(
-        ...,
-        "--pr",
-        "-p",
-        help="Pull request number",
-    ),
-    show_files: bool = typer.Option(
-        False,
-        "--show-files",
-        help="Also print changed-file classification summary before findings.",
-    ),
+    repo: Annotated[
+        str,
+        typer.Option(
+            "--repo",
+            "-r",
+            help="GitHub repository in owner/name format, for example fastapi/fastapi",
+        ),
+    ],
+    pr: Annotated[
+        int,
+        typer.Option(
+            "--pr",
+            "-p",
+            help="Pull request number",
+        ),
+    ],
+    show_files: Annotated[
+        bool,
+        typer.Option(
+            "--show-files",
+            help="Also print changed-file classification summary before findings.",
+        ),
+    ] = False,
+    output_format: Annotated[
+        OutputFormat,
+        typer.Option(
+            "--format",
+            "-f",
+            help="Output format: console, markdown, or json.",
+        ),
+    ] = OutputFormat.CONSOLE,
+    output_path: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Optional output file path for markdown/json reports.",
+        ),
+    ] = None,
 ) -> None:
     """Fetch and analyze a GitHub pull request."""
     try:
@@ -100,10 +138,25 @@ def analyze_pr(
         console.print(f"[bold red]GitHub error:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
 
-    if show_files:
+    if show_files and output_format == OutputFormat.CONSOLE:
         print_pull_request_summary(pull_request)
 
     pipeline = AnalysisPipeline()
     result = pipeline.analyze(pull_request)
 
-    print_analysis_result(result)
+    if output_format == OutputFormat.CONSOLE:
+        print_analysis_result(result)
+        return
+
+    if output_format == OutputFormat.MARKDOWN:
+        content = MarkdownReportGenerator().generate(result)
+    else:
+        content = JsonReportGenerator().generate_json(result)
+
+    if output_path:
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(content, encoding="utf-8")
+        console.print(f"[bold green]Report written to:[/bold green] {output_path}")
+        return
+
+    console.print(content)

@@ -1,0 +1,97 @@
+{
+  "pr": {
+    "repo_full_name": "psf/requests",
+    "pr_number": 6500,
+    "title": "Bump actions/setup-python from 2.3.4 to 4.7.0",
+    "author": "dependabot[bot]",
+    "base_branch": "main",
+    "head_branch": "dependabot/github_actions/actions/setup-python-4.7.0",
+    "html_url": "https://github.com/psf/requests/pull/6500",
+    "changed_files": [
+      {
+        "filename": ".github/workflows/run-tests.yml",
+        "status": "modified",
+        "additions": 1,
+        "deletions": 1,
+        "changes": 2,
+        "patch": "@@ -23,7 +23,7 @@ jobs:\n     steps:\n     - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0\n     - name: Set up Python ${{ matrix.python-version }}\n-      uses: actions/setup-python@e9aba2c848f5ebd159c070c61ea2c4e2b122355e # v2.3.4\n+      uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0\n       with:\n         python-version: ${{ matrix.python-version }}\n     - name: Install dependencies",
+        "previous_filename": null,
+        "language": "YAML",
+        "categories": [
+          "CONFIG",
+          "INFRA"
+        ],
+        "hunks": [
+          {
+            "old_start": 23,
+            "old_count": 7,
+            "new_start": 23,
+            "new_count": 7,
+            "section_header": "jobs:",
+            "lines": [
+              {
+                "old_line_no": 23,
+                "new_line_no": 23,
+                "content": "    steps:",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 24,
+                "new_line_no": 24,
+                "content": "    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 25,
+                "new_line_no": 25,
+                "content": "    - name: Set up Python ${{ matrix.python-version }}",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 26,
+                "new_line_no": null,
+                "content": "      uses: actions/setup-python@e9aba2c848f5ebd159c070c61ea2c4e2b122355e # v2.3.4",
+                "line_type": "deleted"
+              },
+              {
+                "old_line_no": null,
+                "new_line_no": 26,
+                "content": "      uses: actions/setup-python@61a6322f88396a6271a6ee3565807d608ecaddd1 # v4.7.0",
+                "line_type": "added"
+              },
+              {
+                "old_line_no": 27,
+                "new_line_no": 27,
+                "content": "      with:",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 28,
+                "new_line_no": 28,
+                "content": "        python-version: ${{ matrix.python-version }}",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 29,
+                "new_line_no": 29,
+                "content": "    - name: Install dependencies",
+                "line_type": "context"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "findings": [],
+  "test_recommendations": [],
+  "risk_score": {
+    "score": 0,
+    "band": "LOW",
+    "breakdown": {},
+    "deterministic_score": 0,
+    "ai_adjustment": 0,
+    "ai_adjustment_reasons": []
+  },
+  "summary": null
+}
