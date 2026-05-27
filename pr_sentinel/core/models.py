@@ -75,6 +75,10 @@ class RiskScore(BaseModel):
     band: RiskBand
     breakdown: dict[str, int] = Field(default_factory=dict)
 
+    deterministic_score: int = Field(ge=0, le=100)
+    ai_adjustment: int = 0
+    ai_adjustment_reasons: list[str] = Field(default_factory=list)
+
 
 class AnalysisResult(BaseModel):
     pr: PullRequestInfo

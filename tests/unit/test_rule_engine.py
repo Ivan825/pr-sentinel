@@ -1,3 +1,4 @@
+
 from pr_sentinel.core.enums import FileCategory, FileChangeStatus
 from pr_sentinel.core.models import ChangedFile, DiffHunk, DiffLine, PullRequestInfo
 from pr_sentinel.engine.pipeline import AnalysisPipeline
@@ -44,7 +45,8 @@ def test_hardcoded_secret_rule_detects_added_github_token() -> None:
     )
 
     result = AnalysisPipeline().analyze(_make_pr_with_file(changed_file))
-
+    assert result.risk_score is not None
+    assert result.risk_score.score > 0
     assert len(result.findings) == 1
     assert result.findings[0].rule_id == "SEC_001_HARDCODED_SECRET"
     assert result.findings[0].source == "DETERMINISTIC"
