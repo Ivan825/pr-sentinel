@@ -4,12 +4,13 @@ from pr_sentinel.core.enums import FindingCategory, Severity
 from pr_sentinel.core.models import AnalysisResult, Finding
 from pr_sentinel.llm.client import LlmClient
 from pr_sentinel.llm.context_builder import LlmContextBuilder
-from pr_sentinel.llm.models import LlmReviewResult
+from pr_sentinel.llm.models import AiSemanticFinding, LlmReviewResult
 
 
 class SemanticReviewer:
     VALID_CATEGORIES = {category.value for category in FindingCategory}
     VALID_SEVERITIES = {severity.value for severity in Severity}
+    MIN_ACCEPTED_CONFIDENCE = 0.55
 
     CATEGORY_ALIASES = {
         "AUTHORIZATION": "AUTH",
@@ -53,7 +54,7 @@ class SemanticReviewer:
         validated_findings = [
             finding
             for finding in parsed.findings
-            if self._is_evidence_backed(result, finding.file_path, finding.line_number)
+            if self._is_valid_ai_finding(result, finding)
         ]
 
         return LlmReviewResult(
@@ -134,6 +135,7 @@ class SemanticReviewer:
         for separator in ("|", "/", ",", "&", " AND "):
             if separator in cleaned:
                 parts = [part.strip() for part in cleaned.split(separator)]
+
                 for part in parts:
                     if part in self.VALID_CATEGORIES:
                         return part
@@ -161,13 +163,57 @@ class SemanticReviewer:
         if isinstance(value, int | float):
             return min(max(float(value), 0.0), 1.0)
 
-        return 0.7
+        return 0.0
 
     def _normalize_ai_adjustment(self, value: object) -> int:
         if not isinstance(value, int):
             return 0
 
         return min(max(value, -10), 20)
+
+    def _is_valid_ai_finding(
+        self,
+        result: AnalysisResult,
+        finding: AiSemanticFinding,
+    ) -> bool:
+        if finding.confidence < self.MIN_ACCEPTED_CONFIDENCE:
+            return False
+
+        if not self._is_evidence_backed(
+            result=result,
+            file_path=finding.file_path,
+            line_number=finding.line_number,
+        ):
+            return False
+
+        return not self._looks_like_low_value_comment_finding(finding)
+
+    def _looks_like_low_value_comment_finding(self, finding: AiSemanticFinding) -> bool:
+        evidence = finding.evidence.strip().lower()
+        message = finding.message.strip().lower()
+
+        comment_only = evidence.startswith("//") or evidence.startswith("#")
+        claims_sensitive_data = (
+            "sensitive data" in message
+            or "secret" in message
+            or "credential" in message
+        )
+
+        has_known_secret_signal = any(
+            signal in evidence
+            for signal in (
+                "api_key",
+                "apikey",
+                "secret",
+                "token",
+                "password",
+                "ghp_",
+                "akia",
+                "private key",
+            )
+        )
+
+        return comment_only and claims_sensitive_data and not has_known_secret_signal
 
     def _is_evidence_backed(
         self,

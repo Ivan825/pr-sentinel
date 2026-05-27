@@ -27,6 +27,7 @@ dependencies = [
     "tree-sitter-typescript>=0.21.0",
     "tree-sitter-java>=0.21.0",
     "groq>=0.11.0",
+    "httpx>=0.27.0"
 ]
 
 [project.optional-dependencies]

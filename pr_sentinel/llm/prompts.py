@@ -13,6 +13,9 @@ Rules:
 - If there is insufficient evidence, return no finding.
 - Use exactly one category per finding.
 - Use exactly one severity per finding.
+- Do not report random comments, placeholder text, or gibberish as secrets.
+- Only report sensitive-data findings when the evidence contains a recognizable secret pattern,
+  credential name, token, password, key, certificate, or private key.
 - The score adjustment must be bounded between -10 and +20.
 - Positive adjustment means the PR is semantically riskier than deterministic rules indicate.
 - Negative adjustment means deterministic rules likely overestimated risk.
@@ -32,7 +35,7 @@ Return valid JSON matching this exact shape:
       "message": "specific semantic risk",
       "evidence": "quote or summarize exact changed line evidence",
       "recommendation": "specific reviewer action",
-      "confidence": 0.0
+      "confidence": 0.8
     }}
   ],
   "ai_adjustment": 0,
@@ -48,6 +51,8 @@ INFO, LOW, MEDIUM, HIGH, CRITICAL
 Important:
 - Do not return combined categories like "AUTH | SECURITY".
 - Pick the single best category.
+- Confidence must be between 0 and 1.
+- Use confidence below 0.55 when the finding is speculative.
 - If no evidence-backed finding exists, return an empty findings list.
 
 Pull request context:

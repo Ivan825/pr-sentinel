@@ -88,3 +88,71 @@ def test_semantic_reviewer_accepts_evidence_backed_finding() -> None:
     assert core_findings[0].category == FindingCategory.AUTH
     assert core_findings[0].severity == Severity.HIGH
     assert review_result.ai_adjustment == 10
+
+class FakeLowConfidenceLlmClient:
+    def review(self, context: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "findings": [
+                {
+                    "title": "Unprotected sensitive data",
+                    "category": "SECURITY",
+                    "severity": "HIGH",
+                    "file_path": "src/AuthFilter.java",
+                    "line_number": 10,
+                    "message": "The added line contains a comment with potentially sensitive data.",
+                    "evidence": "//sijdwidjfiwjfwjofwof",
+                    "recommendation": "Remove or mask sensitive data in the code.",
+                    "confidence": 0.0,
+                }
+            ],
+            "ai_adjustment": 5,
+            "ai_adjustment_reasons": ["Added a security finding that deterministic rules missed"],
+        }
+
+
+def test_semantic_reviewer_rejects_low_confidence_finding() -> None:
+    changed_file = ChangedFile(
+        filename="src/AuthFilter.java",
+        status=FileChangeStatus.MODIFIED,
+        additions=1,
+        deletions=0,
+        language="Java",
+        categories=[FileCategory.AUTH],
+        hunks=[
+            DiffHunk(
+                old_start=10,
+                old_count=0,
+                new_start=10,
+                new_count=1,
+                lines=[
+                    DiffLine(
+                        old_line_no=None,
+                        new_line_no=10,
+                        content="//sijdwidjfiwjfwjofwof",
+                        line_type="added",
+                    ),
+                ],
+            )
+        ],
+    )
+
+    pr = PullRequestInfo(
+        repo_full_name="example/repo",
+        pr_number=1,
+        title="Change auth",
+        author="contributor",
+        base_branch="main",
+        head_branch="feature",
+        changed_files=[changed_file],
+    )
+
+    result = AnalysisResult(pr=pr)
+
+    reviewer = SemanticReviewer(
+        llm_client=FakeLowConfidenceLlmClient()  # type: ignore[arg-type]
+    )
+    review_result = reviewer.review(result)
+
+    assert review_result.findings == []
+    assert review_result.ai_adjustment == 0
+    assert review_result.ai_adjustment_reasons == []

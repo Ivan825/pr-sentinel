@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 
+from apps.api.routes.analysis import router as analysis_router
+from apps.api.routes.github_webhook import router as github_webhook_router
 from pr_sentinel.core.config import get_settings
 
 settings = get_settings()
@@ -9,6 +11,9 @@ app = FastAPI(
     description="Pull Request Risk Intelligence Platform",
     version="0.1.0",
 )
+
+app.include_router(analysis_router)
+app.include_router(github_webhook_router)
 
 
 @app.get("/health")
