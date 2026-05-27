@@ -27,6 +27,7 @@ def print_pull_request_summary(pr: PullRequestInfo) -> None:
     table.add_column("+", justify="right")
     table.add_column("-", justify="right")
     table.add_column("Patch")
+    table.add_column("Hunks", justify="right")
 
     for changed_file in pr.changed_files:
         table.add_row(
@@ -35,6 +36,7 @@ def print_pull_request_summary(pr: PullRequestInfo) -> None:
             str(changed_file.additions),
             str(changed_file.deletions),
             "yes" if changed_file.patch else "no",
+            str(len(changed_file.hunks)),
         )
 
     console.print(table)

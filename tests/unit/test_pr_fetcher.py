@@ -29,18 +29,18 @@ class FakeGitHubClient:
                 {
                     "filename": "src/security/AuthFilter.java",
                     "status": "modified",
-                    "additions": 12,
-                    "deletions": 4,
-                    "changes": 16,
-                    "patch": "@@ -1,2 +1,2 @@\n-old\n+new",
+                    "additions": 2,
+                    "deletions": 1,
+                    "changes": 3,
+                    "patch": "@@ -1,2 +1,3 @@\n-old\n+new\n+another\n context",
                 },
                 {
                     "filename": "src/test/AuthFilterTest.java",
                     "status": "added",
-                    "additions": 40,
+                    "additions": 2,
                     "deletions": 0,
-                    "changes": 40,
-                    "patch": "@@ -0,0 +1,2 @@\n+test",
+                    "changes": 2,
+                    "patch": "@@ -0,0 +1,2 @@\n+test one\n+test two",
                 },
             ]
 
@@ -63,9 +63,14 @@ def test_pull_request_fetcher_converts_github_pr_to_internal_model() -> None:
     first_file = pr.changed_files[0]
     assert first_file.filename == "src/security/AuthFilter.java"
     assert first_file.status == FileChangeStatus.MODIFIED
-    assert first_file.additions == 12
-    assert first_file.deletions == 4
+    assert first_file.additions == 2
+    assert first_file.deletions == 1
     assert first_file.patch is not None
+    assert len(first_file.hunks) == 1
+    assert first_file.hunks[0].lines[0].line_type == "deleted"
+    assert first_file.hunks[0].lines[1].line_type == "added"
 
     second_file = pr.changed_files[1]
     assert second_file.status == FileChangeStatus.ADDED
+    assert len(second_file.hunks) == 1
+    assert len(second_file.hunks[0].lines) == 2
