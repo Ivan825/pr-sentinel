@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: prsentinel-postgres
+    environment:
+      POSTGRES_USER: prsentinel
+      POSTGRES_PASSWORD: prsentinel
+      POSTGRES_DB: prsentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prsentinel -d prsentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
