@@ -3,6 +3,9 @@ from rich.console import Console
 from rich.table import Table
 
 from pr_sentinel.core.config import get_settings
+from pr_sentinel.github.client import GitHubClientError
+from pr_sentinel.github.pr_fetcher import PullRequestFetcher
+from pr_sentinel.reports.console import print_pull_request_summary
 
 app = typer.Typer(
     name="pr-sentinel",
@@ -39,3 +42,29 @@ def doctor() -> None:
     console.print(f"Database URL configured: {'yes' if settings.database_url else 'no'}")
     console.print(f"GitHub token configured: {'yes' if settings.github_token else 'no'}")
     console.print(f"LLM provider: {settings.llm_provider}")
+
+
+@app.command("fetch-pr")
+def fetch_pr(
+    repo: str = typer.Option(
+        ...,
+        "--repo",
+        "-r",
+        help="GitHub repository in owner/name format, for example fastapi/fastapi",
+    ),
+    pr: int = typer.Option(
+        ...,
+        "--pr",
+        "-p",
+        help="Pull request number",
+    ),
+) -> None:
+    """Fetch GitHub pull request metadata and changed files."""
+    try:
+        fetcher = PullRequestFetcher()
+        pull_request = fetcher.fetch(repo_full_name=repo, pr_number=pr)
+    except GitHubClientError as exc:
+        console.print(f"[bold red]GitHub error:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
+
+    print_pull_request_summary(pull_request)

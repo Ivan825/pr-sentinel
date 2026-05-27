@@ -43,7 +43,7 @@ class AnalysisRecord(Base):
     risk_band: Mapped[str | None] = mapped_column(String(50), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    raw_result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    raw_result: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
