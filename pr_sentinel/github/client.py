@@ -28,11 +28,31 @@ class GitHubClient:
         return headers
 
     def get(self, path: str, params: dict[str, Any] | None = None) -> Any:
+        return self._request("GET", path, params=params)
+
+    def post(self, path: str, json_body: dict[str, Any]) -> Any:
+        return self._request("POST", path, json_body=json_body)
+
+    def patch(self, path: str, json_body: dict[str, Any]) -> Any:
+        return self._request("PATCH", path, json_body=json_body)
+
+    def _request(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        json_body: dict[str, Any] | None = None,
+    ) -> Any:
         url = f"{self.base_url}{path}"
 
         try:
             with httpx.Client(timeout=30.0, headers=self._headers()) as client:
-                response = client.get(url, params=params)
+                response = client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json_body,
+                )
         except httpx.HTTPError as exc:
             raise GitHubClientError(f"GitHub request failed: {exc}") from exc
 
@@ -40,6 +60,9 @@ class GitHubClient:
             raise GitHubClientError(
                 f"GitHub API error {response.status_code}: {response.text}"
             )
+
+        if not response.content:
+            return None
 
         return response.json()
 

@@ -9,6 +9,7 @@ from rich.table import Table
 from pr_sentinel.core.config import get_settings
 from pr_sentinel.engine.pipeline import AnalysisPipeline
 from pr_sentinel.github.client import GitHubClientError
+from pr_sentinel.github.comment_publisher import PullRequestCommentPublisher
 from pr_sentinel.github.pr_fetcher import PullRequestFetcher
 from pr_sentinel.reports.analysis_console import print_analysis_result
 from pr_sentinel.reports.console import print_pull_request_summary
@@ -129,6 +130,13 @@ def analyze_pr(
             help="Optional output file path for markdown/json reports.",
         ),
     ] = None,
+    post_comment: Annotated[
+        bool,
+        typer.Option(
+            "--post-comment",
+            help="Post or update the PRSentinel Markdown report as a GitHub PR comment.",
+        ),
+    ] = False,
 ) -> None:
     """Fetch and analyze a GitHub pull request."""
     try:
@@ -144,12 +152,27 @@ def analyze_pr(
     pipeline = AnalysisPipeline()
     result = pipeline.analyze(pull_request)
 
+    markdown_report = MarkdownReportGenerator().generate(result)
+
+    if post_comment:
+        try:
+            status = PullRequestCommentPublisher().publish_or_update_comment(
+                repo_full_name=repo,
+                pr_number=pr,
+                markdown_body=markdown_report,
+            )
+        except GitHubClientError as exc:
+            console.print(f"[bold red]GitHub comment error:[/bold red] {exc}")
+            raise typer.Exit(code=1) from exc
+
+        console.print(f"[bold green]GitHub PR comment {status}.[/bold green]")
+
     if output_format == OutputFormat.CONSOLE:
         print_analysis_result(result)
         return
 
     if output_format == OutputFormat.MARKDOWN:
-        content = MarkdownReportGenerator().generate(result)
+        content = markdown_report
     else:
         content = JsonReportGenerator().generate_json(result)
 
