@@ -16,7 +16,7 @@ CATEGORY_MULTIPLIERS: dict[FindingCategory, float] = {
     FindingCategory.DATABASE: 1.2,
     FindingCategory.CONFIG: 1.05,
     FindingCategory.DEPENDENCY: 1.0,
-    FindingCategory.TEST: 1.0,
+    FindingCategory.TEST: 1.15,
     FindingCategory.INFRA: 1.1,
     FindingCategory.GENERAL: 1.0,
 }
@@ -27,6 +27,7 @@ HIGH_RISK_RULE_BONUSES: dict[str, int] = {
     "AUTH_001_PERMISSION_CHECK_REMOVED": 10,
     "SEC_002_RAW_SQL_CONCATENATION": 8,
     "CFG_001_CORS_WILDCARD_ENABLED": 6,
+    "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST": 5,
 }
 
 

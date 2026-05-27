@@ -15,6 +15,7 @@ def print_analysis_result(result: AnalysisResult) -> None:
     console.print(f"[bold]PR:[/bold] #{result.pr.pr_number} — {result.pr.title}")
     console.print(f"[bold]Author:[/bold] {result.pr.author}")
     console.print(f"[bold]Findings:[/bold] {len(result.findings)}")
+    console.print(f"[bold]Test Recommendations:[/bold] {len(result.test_recommendations)}")
 
     if result.risk_score:
         console.print(
@@ -39,9 +40,12 @@ def print_analysis_result(result: AnalysisResult) -> None:
         console.print(
             "[bold green]No findings detected by current deterministic rules.[/bold green]"
         )
-        return
+    else:
+        _print_findings(result)
 
-    _print_findings(result)
+    if result.test_recommendations:
+        console.print()
+        _print_test_recommendations(result)
 
 
 def _print_risk_breakdown(result: AnalysisResult) -> None:
@@ -79,6 +83,24 @@ def _print_findings(result: AnalysisResult) -> None:
             finding.file_path,
             str(finding.line_number) if finding.line_number is not None else "-",
             finding.message,
+        )
+
+    console.print(table)
+
+
+def _print_test_recommendations(result: AnalysisResult) -> None:
+    table = Table(title="Test Recommendations")
+    table.add_column("Source File", overflow="fold")
+    table.add_column("Recommended Tests", overflow="fold")
+    table.add_column("Reason", overflow="fold")
+
+    for recommendation in result.test_recommendations:
+        tests = "\n".join(recommendation.recommended_tests)
+
+        table.add_row(
+            recommendation.source_file,
+            tests,
+            recommendation.reason,
         )
 
     console.print(table)

@@ -3,6 +3,7 @@ from pr_sentinel.rules.config_rules import CorsWildcardRule, DebugModeEnabledRul
 from pr_sentinel.rules.dependency_rules import DependencyFileChangedRule
 from pr_sentinel.rules.registry import RuleRegistry
 from pr_sentinel.rules.security_rules import HardcodedSecretRule, RawSqlConcatenationRule
+from pr_sentinel.rules.test_rules import RiskySourceWithoutMatchingTestRule
 
 
 def build_default_rule_registry() -> RuleRegistry:
@@ -16,6 +17,7 @@ def build_default_rule_registry() -> RuleRegistry:
             DebugModeEnabledRule(),
             DependencyFileChangedRule(),
             PermissionCheckRemovedRule(),
+            RiskySourceWithoutMatchingTestRule(),
         ]
     )
 

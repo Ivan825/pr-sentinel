@@ -1,4 +1,3 @@
-
 from pr_sentinel.core.enums import FileCategory, FileChangeStatus
 from pr_sentinel.core.models import ChangedFile, DiffHunk, DiffLine, PullRequestInfo
 from pr_sentinel.engine.pipeline import AnalysisPipeline
@@ -45,11 +44,12 @@ def test_hardcoded_secret_rule_detects_added_github_token() -> None:
     )
 
     result = AnalysisPipeline().analyze(_make_pr_with_file(changed_file))
-    assert result.risk_score is not None
-    assert result.risk_score.score > 0
+
     assert len(result.findings) == 1
     assert result.findings[0].rule_id == "SEC_001_HARDCODED_SECRET"
     assert result.findings[0].source == "DETERMINISTIC"
+    assert result.risk_score is not None
+    assert result.risk_score.score > 0
 
 
 def test_permission_check_removed_rule_detects_deleted_auth_line() -> None:
@@ -72,9 +72,9 @@ def test_permission_check_removed_rule_detects_deleted_auth_line() -> None:
                         old_line_no=20,
                         new_line_no=None,
                         content=(
-                                    "if (!hasPermission(user, resource)) "
-                                    "throw new ForbiddenException();"
-                                ),
+                            "if (!hasPermission(user, resource)) "
+                            "throw new ForbiddenException();"
+                        ),
                         line_type="deleted",
                     )
                 ],
@@ -83,10 +83,11 @@ def test_permission_check_removed_rule_detects_deleted_auth_line() -> None:
     )
 
     result = AnalysisPipeline().analyze(_make_pr_with_file(changed_file))
+    rule_ids = {finding.rule_id for finding in result.findings}
 
-    assert len(result.findings) == 1
-    assert result.findings[0].rule_id == "AUTH_001_PERMISSION_CHECK_REMOVED"
-    assert result.findings[0].source == "DETERMINISTIC"
+    assert "AUTH_001_PERMISSION_CHECK_REMOVED" in rule_ids
+    assert "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST" in rule_ids
+    assert all(finding.source == "DETERMINISTIC" for finding in result.findings)
 
 
 def test_dependency_file_changed_rule_detects_package_json_change() -> None:
@@ -169,6 +170,28 @@ def test_raw_sql_concatenation_rule_detects_added_query_concat() -> None:
     )
 
     result = AnalysisPipeline().analyze(_make_pr_with_file(changed_file))
+    rule_ids = {finding.rule_id for finding in result.findings}
 
-    assert len(result.findings) == 1
-    assert result.findings[0].rule_id == "SEC_002_RAW_SQL_CONCATENATION"
+    assert "SEC_002_RAW_SQL_CONCATENATION" in rule_ids
+    assert "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST" in rule_ids
+
+
+def test_risky_source_without_matching_test_rule_detects_missing_test() -> None:
+    changed_file = ChangedFile(
+        filename="src/main/java/com/app/order/OrderService.java",
+        status=FileChangeStatus.MODIFIED,
+        additions=5,
+        deletions=2,
+        changes=7,
+        language="Java",
+        categories=[FileCategory.BACKEND],
+        hunks=[],
+    )
+
+    result = AnalysisPipeline().analyze(_make_pr_with_file(changed_file))
+
+    assert any(
+        finding.rule_id == "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST"
+        for finding in result.findings
+    )
+    assert result.test_recommendations

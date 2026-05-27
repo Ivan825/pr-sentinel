@@ -3,6 +3,7 @@ from pr_sentinel.risk.scorer import RiskScorer
 from pr_sentinel.rules.base import RuleContext
 from pr_sentinel.rules.default_rules import build_default_rule_registry
 from pr_sentinel.rules.registry import RuleRegistry
+from pr_sentinel.testsuggester.mapper import TestRecommendationMapper
 
 
 class AnalysisPipeline:
@@ -10,9 +11,11 @@ class AnalysisPipeline:
         self,
         rule_registry: RuleRegistry | None = None,
         risk_scorer: RiskScorer | None = None,
+        test_mapper: TestRecommendationMapper | None = None,
     ) -> None:
         self.rule_registry = rule_registry or build_default_rule_registry()
         self.risk_scorer = risk_scorer or RiskScorer()
+        self.test_mapper = test_mapper or TestRecommendationMapper()
 
     def analyze(self, pull_request: PullRequestInfo) -> AnalysisResult:
         context = RuleContext(
@@ -21,12 +24,15 @@ class AnalysisPipeline:
         )
 
         findings = self.rule_registry.evaluate_all(context)
+        test_recommendations = self.test_mapper.recommend_for_changed_files(
+            pull_request.changed_files
+        )
         risk_score = self.risk_scorer.score_findings(findings)
 
         return AnalysisResult(
             pr=pull_request,
             findings=findings,
-            test_recommendations=[],
+            test_recommendations=test_recommendations,
             risk_score=risk_score,
             summary=None,
         )
