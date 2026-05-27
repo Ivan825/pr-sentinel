@@ -61,6 +61,7 @@ class Finding(BaseModel):
     evidence: str | None = None
     recommendation: str | None = None
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    source: str = "DETERMINISTIC"
 
 
 class TestRecommendation(BaseModel):
