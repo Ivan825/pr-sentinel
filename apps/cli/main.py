@@ -57,6 +57,7 @@ def doctor() -> None:
     console.print(f"Database URL configured: {'yes' if settings.database_url else 'no'}")
     console.print(f"GitHub token configured: {'yes' if settings.github_token else 'no'}")
     console.print(f"LLM provider: {settings.llm_provider}")
+    console.print(f"LLM model: {settings.llm_model}")
 
 
 @app.command("fetch-pr")
@@ -137,6 +138,13 @@ def analyze_pr(
             help="Post or update the PRSentinel Markdown report as a GitHub PR comment.",
         ),
     ] = False,
+    use_llm: Annotated[
+        bool,
+        typer.Option(
+            "--use-llm",
+            help="Enable AI-assisted semantic review using the configured LLM provider.",
+        ),
+    ] = False,
 ) -> None:
     """Fetch and analyze a GitHub pull request."""
     try:
@@ -149,7 +157,7 @@ def analyze_pr(
     if show_files and output_format == OutputFormat.CONSOLE:
         print_pull_request_summary(pull_request)
 
-    pipeline = AnalysisPipeline()
+    pipeline = AnalysisPipeline(use_llm=use_llm)
     result = pipeline.analyze(pull_request)
 
     markdown_report = MarkdownReportGenerator().generate(result)

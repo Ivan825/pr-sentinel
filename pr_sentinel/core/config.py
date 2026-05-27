@@ -19,6 +19,8 @@ class Settings(BaseSettings):
 
     llm_provider: str = Field(default="disabled", alias="LLM_PROVIDER")
     llm_api_key: str | None = Field(default=None, alias="LLM_API_KEY")
+    llm_model: str = Field(default="llama-3.1-8b-instant", alias="LLM_MODEL")
+    llm_max_findings: int = Field(default=5, alias="LLM_MAX_FINDINGS")
 
     model_config = SettingsConfigDict(
         env_file=".env",
