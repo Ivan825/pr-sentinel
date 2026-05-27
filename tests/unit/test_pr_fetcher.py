@@ -1,6 +1,6 @@
 from typing import Any
 
-from pr_sentinel.core.enums import FileChangeStatus
+from pr_sentinel.core.enums import FileCategory, FileChangeStatus
 from pr_sentinel.github.pr_fetcher import PullRequestFetcher
 
 
@@ -27,7 +27,7 @@ class FakeGitHubClient:
         if path == "/repos/example/repo/pulls/7/files":
             return [
                 {
-                    "filename": "src/security/AuthFilter.java",
+                    "filename": "src/main/java/com/app/security/AuthFilter.java",
                     "status": "modified",
                     "additions": 2,
                     "deletions": 1,
@@ -35,7 +35,7 @@ class FakeGitHubClient:
                     "patch": "@@ -1,2 +1,3 @@\n-old\n+new\n+another\n context",
                 },
                 {
-                    "filename": "src/test/AuthFilterTest.java",
+                    "filename": "src/test/java/com/app/security/AuthFilterTest.java",
                     "status": "added",
                     "additions": 2,
                     "deletions": 0,
@@ -61,8 +61,12 @@ def test_pull_request_fetcher_converts_github_pr_to_internal_model() -> None:
     assert len(pr.changed_files) == 2
 
     first_file = pr.changed_files[0]
-    assert first_file.filename == "src/security/AuthFilter.java"
+    assert first_file.filename == "src/main/java/com/app/security/AuthFilter.java"
     assert first_file.status == FileChangeStatus.MODIFIED
+    assert first_file.language == "Java"
+    assert FileCategory.AUTH in first_file.categories
+    assert FileCategory.SECURITY in first_file.categories
+    assert FileCategory.BACKEND in first_file.categories
     assert first_file.additions == 2
     assert first_file.deletions == 1
     assert first_file.patch is not None
@@ -72,5 +76,7 @@ def test_pull_request_fetcher_converts_github_pr_to_internal_model() -> None:
 
     second_file = pr.changed_files[1]
     assert second_file.status == FileChangeStatus.ADDED
+    assert second_file.language == "Java"
+    assert FileCategory.TEST in second_file.categories
     assert len(second_file.hunks) == 1
     assert len(second_file.hunks[0].lines) == 2

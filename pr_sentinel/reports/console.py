@@ -24,18 +24,22 @@ def print_pull_request_summary(pr: PullRequestInfo) -> None:
     table = Table(title="Changed Files")
     table.add_column("File", overflow="fold")
     table.add_column("Status")
+    table.add_column("Lang")
+    table.add_column("Categories", overflow="fold")
     table.add_column("+", justify="right")
     table.add_column("-", justify="right")
-    table.add_column("Patch")
     table.add_column("Hunks", justify="right")
 
     for changed_file in pr.changed_files:
+        categories = ", ".join(category.value for category in changed_file.categories)
+
         table.add_row(
             changed_file.filename,
             changed_file.status.value,
+            changed_file.language or "-",
+            categories,
             str(changed_file.additions),
             str(changed_file.deletions),
-            "yes" if changed_file.patch else "no",
             str(len(changed_file.hunks)),
         )
 

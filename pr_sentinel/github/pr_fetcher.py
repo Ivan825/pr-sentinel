@@ -1,3 +1,4 @@
+from pr_sentinel.classifier.file_classifier import FileClassifier
 from pr_sentinel.core.enums import FileChangeStatus
 from pr_sentinel.core.models import ChangedFile, PullRequestInfo
 from pr_sentinel.diff.changed_file import ChangedFileDiffParser
@@ -25,9 +26,11 @@ class PullRequestFetcher:
         self,
         github_client: GitHubClient | None = None,
         diff_parser: ChangedFileDiffParser | None = None,
+        file_classifier: FileClassifier | None = None,
     ) -> None:
         self.github_client = github_client or GitHubClient()
         self.diff_parser = diff_parser or ChangedFileDiffParser()
+        self.file_classifier = file_classifier or FileClassifier()
 
     def fetch_pull_request(self, repo_full_name: str, pr_number: int) -> GitHubPullRequest:
         data = self.github_client.get(f"/repos/{repo_full_name}/pulls/{pr_number}")
@@ -87,6 +90,7 @@ class PullRequestFetcher:
         ]
 
         parsed_changed_files = self.diff_parser.parse_changed_files(changed_files)
+        classified_changed_files = self.file_classifier.classify_many(parsed_changed_files)
 
         return PullRequestInfo(
             repo_full_name=pr.repo_full_name,
@@ -96,5 +100,5 @@ class PullRequestFetcher:
             base_branch=pr.base_branch,
             head_branch=pr.head_branch,
             html_url=pr.html_url,
-            changed_files=parsed_changed_files,
+            changed_files=classified_changed_files,
         )
