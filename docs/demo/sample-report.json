@@ -1,0 +1,134 @@
+{
+  "pr": {
+    "repo_full_name": "Ivan825/prsentinel-demo",
+    "pr_number": 7,
+    "title": "Fix AuthFilter class and isAllowed method",
+    "author": "Ivan825",
+    "base_branch": "main",
+    "head_branch": "test-risky-change",
+    "html_url": "https://github.com/Ivan825/prsentinel-demo/pull/7",
+    "changed_files": [
+      {
+        "filename": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java",
+        "status": "modified",
+        "additions": 3,
+        "deletions": 0,
+        "changes": 3,
+        "patch": "@@ -7,4 +7,7 @@ public boolean isAllowed(String user) {\n         //oeojfoeijfejfehjfejhofeofo\n         //sijdwidjfiwjfwjofwof\n     }\n+    public boolean isAllowed(String user) {\n+    return true;\n+}\n }",
+        "previous_filename": null,
+        "language": "Java",
+        "categories": [
+          "AUTH",
+          "BACKEND",
+          "FRONTEND",
+          "SECURITY"
+        ],
+        "hunks": [
+          {
+            "old_start": 7,
+            "old_count": 4,
+            "new_start": 7,
+            "new_count": 7,
+            "section_header": "public boolean isAllowed(String user) {",
+            "lines": [
+              {
+                "old_line_no": 7,
+                "new_line_no": 7,
+                "content": "        //oeojfoeijfejfehjfejhofeofo",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 8,
+                "new_line_no": 8,
+                "content": "        //sijdwidjfiwjfwjofwof",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": 9,
+                "new_line_no": 9,
+                "content": "    }",
+                "line_type": "context"
+              },
+              {
+                "old_line_no": null,
+                "new_line_no": 10,
+                "content": "    public boolean isAllowed(String user) {",
+                "line_type": "added"
+              },
+              {
+                "old_line_no": null,
+                "new_line_no": 11,
+                "content": "    return true;",
+                "line_type": "added"
+              },
+              {
+                "old_line_no": null,
+                "new_line_no": 12,
+                "content": "}",
+                "line_type": "added"
+              },
+              {
+                "old_line_no": 10,
+                "new_line_no": 13,
+                "content": "}",
+                "line_type": "context"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "findings": [
+    {
+      "rule_id": "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST",
+      "title": "Risky source changed without matching test",
+      "category": "TEST",
+      "severity": "MEDIUM",
+      "file_path": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java",
+      "line_number": null,
+      "message": "Risky source file changed, but no directly matching test file was modified in this PR.",
+      "evidence": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterTest.java, package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterIT.java",
+      "recommendation": "Add or update relevant unit/integration tests, or document why existing tests already cover this change.",
+      "confidence": 0.72,
+      "source": "DETERMINISTIC"
+    },
+    {
+      "rule_id": "AI_SEMANTIC_001",
+      "title": "Potential authentication bypass due to unconditional isAllowed method",
+      "category": "AUTH",
+      "severity": "HIGH",
+      "file_path": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java",
+      "line_number": 11,
+      "message": "The isAllowed method now unconditionally returns true, potentially allowing unauthorized access.",
+      "evidence": "    return true;",
+      "recommendation": "Review the AuthFilter class to ensure that the unconditional return value is intentional and secure.",
+      "confidence": 0.8,
+      "source": "AI_ASSISTED"
+    }
+  ],
+  "test_recommendations": [
+    {
+      "source_file": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java",
+      "recommended_tests": [
+        "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterTest.java",
+        "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterIT.java"
+      ],
+      "reason": "Source file changed, but no test files were modified in this PR. Review recommended tests because source categories are: AUTH, BACKEND, FRONTEND, SECURITY."
+    }
+  ],
+  "risk_score": {
+    "score": 34,
+    "band": "MEDIUM",
+    "breakdown": {
+      "TEST": 12,
+      "AUTH": 17
+    },
+    "deterministic_score": 29,
+    "ai_adjustment": 5,
+    "ai_adjustment_reasons": [
+      "The unconditional return value in the isAllowed method suggests a potential security risk that deterministic rules may not have caught."
+    ]
+  },
+  "summary": null
+}
