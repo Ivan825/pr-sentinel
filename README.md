@@ -2,7 +2,7 @@
 
 PRSentinel is a production-style GitHub App that analyzes pull requests before they are merged. It combines deterministic static-analysis rules with bounded LLM-based semantic review to detect risky changes, compute explainable PR risk scores, recommend targeted tests, post/update GitHub PR comments, persist analysis history to PostgreSQL, expose FastAPI endpoints, and export SARIF reports for code-scanning workflows.
 
-The project is designed as an SDE-focused developer-platform system, not a simple AI wrapper. The LLM is used only after deterministic context building, and every AI finding is normalized, validated, evidence-checked, confidence-filtered, and bounded before it can affect the final score.
+The project is  not a simple AI wrapper. The LLM is used only after deterministic context building, and every AI finding is normalized, validated, evidence-checked, confidence-filtered, and bounded before it can affect the final score.
 
 ---
 
