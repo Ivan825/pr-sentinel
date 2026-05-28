@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from apps.api.routes.analyses import router as analyses_router
 from apps.api.routes.analysis import router as analysis_router
 from apps.api.routes.github_webhook import router as github_webhook_router
 from pr_sentinel.core.config import get_settings
@@ -13,6 +14,7 @@ app = FastAPI(
 )
 
 app.include_router(analysis_router)
+app.include_router(analyses_router)
 app.include_router(github_webhook_router)
 
 

@@ -58,6 +58,18 @@ class AnalysisRepository:
 
         return analysis
 
+    def get_analysis_by_id(self, analysis_id: int) -> AnalysisRecord | None:
+        statement = (
+            select(AnalysisRecord)
+            .options(
+                joinedload(AnalysisRecord.repository),
+                joinedload(AnalysisRecord.findings),
+            )
+            .where(AnalysisRecord.id == analysis_id)
+        )
+
+        return self.db.scalars(statement).unique().first()
+
     def list_recent_analyses(self, limit: int = 20) -> list[AnalysisRecord]:
         statement = (
             select(AnalysisRecord)
