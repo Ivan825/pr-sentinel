@@ -8,6 +8,7 @@ class AnalyzePullRequestRequest(BaseModel):
     pr: int = Field(..., description="Pull request number")
     use_llm: bool = False
     post_comment: bool = False
+    save: bool = False
 
 
 class AnalyzePullRequestResponse(BaseModel):
@@ -20,4 +21,5 @@ class AnalyzePullRequestResponse(BaseModel):
     deterministic_score: int
     ai_adjustment: int
     comment_status: str | None = None
+    analysis_id: int | None = None
     analysis: dict[str, Any]

@@ -1,0 +1,13 @@
+Start FastAPI
+Start ngrok
+Copy new ngrok HTTPS URL
+Edit existing GitHub webhook Payload URL
+Save
+Make/update PR
+Webhook fires
+
+
+source .venv/bin/activate
+uvicorn apps.api.main:app --reload
+
+ngrok http 8000

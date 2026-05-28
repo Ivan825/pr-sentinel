@@ -1,10 +1,12 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from pr_sentinel.storage.database import Base
+
+JSON_VARIANT = JSON().with_variant(JSONB, "postgresql")
 
 
 class RepositoryRecord(Base):
@@ -28,6 +30,15 @@ class RepositoryRecord(Base):
 
 class AnalysisRecord(Base):
     __tablename__ = "analyses"
+    __table_args__ = (
+        UniqueConstraint(
+            "repository_id",
+            "pr_number",
+            "head_branch",
+            "created_at",
+            name="uq_analysis_repo_pr_head_created",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     repository_id: Mapped[int] = mapped_column(ForeignKey("repositories.id"), nullable=False)
@@ -39,19 +50,29 @@ class AnalysisRecord(Base):
     head_branch: Mapped[str] = mapped_column(String(255), nullable=False)
     html_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
+    findings_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    test_recommendations_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
     risk_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    deterministic_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    ai_adjustment: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     risk_band: Mapped[str | None] = mapped_column(String(50), nullable=True)
     summary: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    raw_result: Mapped[dict[str, object]] = mapped_column(JSONB, nullable=False)
+    raw_result: Mapped[dict[str, object]] = mapped_column(JSON_VARIANT, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(UTC),
         nullable=False,
+        index=True,
     )
 
     repository: Mapped[RepositoryRecord] = relationship(back_populates="analyses")
+    findings: Mapped[list["FindingRecord"]] = relationship(
+        back_populates="analysis",
+        cascade="all, delete-orphan",
+    )
 
 
 class FindingRecord(Base):
@@ -64,6 +85,8 @@ class FindingRecord(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     severity: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(50), nullable=False, default="DETERMINISTIC")
+
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     line_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
@@ -77,3 +100,5 @@ class FindingRecord(Base):
         default=lambda: datetime.now(UTC),
         nullable=False,
     )
+
+    analysis: Mapped[AnalysisRecord] = relationship(back_populates="findings")

@@ -11,6 +11,7 @@ from pr_sentinel.github.comment_publisher import PullRequestCommentPublisher
 from pr_sentinel.github.webhook import verify_github_signature
 from pr_sentinel.llm.client import LlmClientError
 from pr_sentinel.reports.markdown import MarkdownReportGenerator
+from pr_sentinel.storage.persistence import persist_analysis_result
 
 router = APIRouter(prefix="/api/github", tags=["github-webhook"])
 
@@ -69,7 +70,7 @@ async def github_webhook(
             pr_number=pr_number,
         )
         result = AnalysisPipeline(use_llm=use_llm).analyze(pull_request)
-
+        analysis_id = persist_analysis_result(result)
         comment_status: str | None = None
 
         if post_comment:
@@ -99,6 +100,7 @@ async def github_webhook(
         "deterministic_score": risk.deterministic_score if risk else 0,
         "ai_adjustment": risk.ai_adjustment if risk else 0,
         "comment_status": comment_status,
+        "analysis_id": analysis_id,
     }
 
 

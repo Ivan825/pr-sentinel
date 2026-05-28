@@ -15,6 +15,9 @@ from pr_sentinel.reports.analysis_console import print_analysis_result
 from pr_sentinel.reports.console import print_pull_request_summary
 from pr_sentinel.reports.json_report import JsonReportGenerator
 from pr_sentinel.reports.markdown import MarkdownReportGenerator
+from pr_sentinel.storage.analysis_repository import AnalysisRepository
+from pr_sentinel.storage.database import SessionLocal
+from pr_sentinel.storage.persistence import persist_analysis_result
 
 app = typer.Typer(
     name="pr-sentinel",
@@ -145,6 +148,13 @@ def analyze_pr(
             help="Enable AI-assisted semantic review using the configured LLM provider.",
         ),
     ] = False,
+    save: Annotated[
+        bool,
+        typer.Option(
+            "--save",
+            help="Persist the analysis result to PostgreSQL.",
+        ),
+    ] = False,
 ) -> None:
     """Fetch and analyze a GitHub pull request."""
     try:
@@ -159,6 +169,10 @@ def analyze_pr(
 
     pipeline = AnalysisPipeline(use_llm=use_llm)
     result = pipeline.analyze(pull_request)
+
+    if save:
+        analysis_id = persist_analysis_result(result)
+        console.print(f"[bold green]Analysis saved with ID:[/bold green] {analysis_id}")
 
     markdown_report = MarkdownReportGenerator().generate(result)
 
@@ -191,3 +205,54 @@ def analyze_pr(
         return
 
     console.print(content)
+
+
+@app.command("list-analyses")
+def list_analyses(
+    repo: Annotated[
+        str | None,
+        typer.Option(
+            "--repo",
+            "-r",
+            help="Optional repository filter in owner/name format.",
+        ),
+    ] = None,
+    limit: Annotated[
+        int,
+        typer.Option(
+            "--limit",
+            "-n",
+            help="Maximum number of analyses to show.",
+        ),
+    ] = 20,
+) -> None:
+    """List recently saved PRSentinel analyses."""
+    with SessionLocal() as db:
+        repository = AnalysisRepository(db)
+
+        if repo:
+            analyses = repository.list_repo_analyses(repo_full_name=repo, limit=limit)
+        else:
+            analyses = repository.list_recent_analyses(limit=limit)
+
+    table = Table(title="Saved Analyses")
+    table.add_column("ID", justify="right")
+    table.add_column("Repository")
+    table.add_column("PR", justify="right")
+    table.add_column("Risk")
+    table.add_column("Score", justify="right")
+    table.add_column("Findings", justify="right")
+    table.add_column("Created At")
+
+    for analysis in analyses:
+        table.add_row(
+            str(analysis.id),
+            analysis.repository.full_name,
+            str(analysis.pr_number),
+            analysis.risk_band or "-",
+            str(analysis.risk_score if analysis.risk_score is not None else "-"),
+            str(analysis.findings_count),
+            analysis.created_at.isoformat(),
+        )
+
+    console.print(table)

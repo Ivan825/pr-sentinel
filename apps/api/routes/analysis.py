@@ -7,6 +7,7 @@ from pr_sentinel.github.comment_publisher import PullRequestCommentPublisher
 from pr_sentinel.github.pr_fetcher import PullRequestFetcher
 from pr_sentinel.llm.client import LlmClientError
 from pr_sentinel.reports.markdown import MarkdownReportGenerator
+from pr_sentinel.storage.persistence import persist_analysis_result
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
@@ -20,6 +21,11 @@ def analyze_pull_request(request: AnalyzePullRequestRequest) -> AnalyzePullReque
         )
 
         result = AnalysisPipeline(use_llm=request.use_llm).analyze(pull_request)
+
+        analysis_id: int | None = None
+
+        if request.save:
+            analysis_id = persist_analysis_result(result)
 
         comment_status: str | None = None
 
@@ -48,5 +54,6 @@ def analyze_pull_request(request: AnalyzePullRequestRequest) -> AnalyzePullReque
         deterministic_score=risk.deterministic_score if risk else 0,
         ai_adjustment=risk.ai_adjustment if risk else 0,
         comment_status=comment_status,
+        analysis_id=analysis_id,
         analysis=result.model_dump(mode="json"),
     )
