@@ -26,4 +26,4 @@ RUN pip install --upgrade pip \
 
 EXPOSE 8000
 
-CMD ["gunicorn", "apps.api.main:app", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120"]
+CMD ["sh", "-c", "alembic upgrade head && gunicorn apps.api.main:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000} --workers 2 --timeout 120"]
