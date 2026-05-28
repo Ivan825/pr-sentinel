@@ -545,21 +545,7 @@ Add symbol-aware code indexing for deeper semantic review
 
 ---
 
-## Resume bullets
 
-```text
-Built PRSentinel, a deployed GitHub App for pull request risk intelligence using FastAPI, PostgreSQL, GitHub REST APIs, Docker, and Groq LLMs; analyzed PR diffs, classified changed files, computed explainable risk scores, and posted automated review comments as an installation-scoped GitHub App bot.
-```
-
-```text
-Implemented a hybrid review engine combining deterministic static-analysis rules with bounded LLM semantic review, including schema validation, confidence filtering, duplicate suppression, evidence-backed line validation, and controlled AI score adjustments.
-```
-
-```text
-Developed production-style reporting and persistence workflows with Markdown PR comments, JSON APIs, SARIF export, Alembic migrations, saved analysis history, Docker deployment, and CI checks using pytest, Ruff, and mypy.
-```
-
----
 
 ## Status
 
