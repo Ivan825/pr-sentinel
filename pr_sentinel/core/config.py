@@ -14,7 +14,14 @@ class Settings(BaseSettings):
         alias="DATABASE_URL",
     )
 
+    github_auth_mode: str = Field(default="token", alias="GITHUB_AUTH_MODE")
     github_token: str | None = Field(default=None, alias="GITHUB_TOKEN")
+
+    github_app_id: str | None = Field(default=None, alias="GITHUB_APP_ID")
+    github_app_private_key_path: str | None = Field(
+        default=None,
+        alias="GITHUB_APP_PRIVATE_KEY_PATH",
+    )
     github_webhook_secret: str | None = Field(default=None, alias="GITHUB_WEBHOOK_SECRET")
 
     llm_provider: str = Field(default="disabled", alias="LLM_PROVIDER")

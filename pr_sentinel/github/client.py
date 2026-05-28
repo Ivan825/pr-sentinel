@@ -12,7 +12,7 @@ class GitHubClientError(Exception):
 class GitHubClient:
     def __init__(self, token: str | None = None) -> None:
         settings = get_settings()
-        self.token = token or settings.github_token
+        self.token = token if token is not None else settings.github_token
         self.base_url = "https://api.github.com"
 
     def _headers(self) -> dict[str, str]:
@@ -30,8 +30,8 @@ class GitHubClient:
     def get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         return self._request("GET", path, params=params)
 
-    def post(self, path: str, json_body: dict[str, Any]) -> Any:
-        return self._request("POST", path, json_body=json_body)
+    def post(self, path: str, json_body: dict[str, Any] | None = None) -> Any:
+        return self._request("POST", path, json_body=json_body or {})
 
     def patch(self, path: str, json_body: dict[str, Any]) -> Any:
         return self._request("PATCH", path, json_body=json_body)

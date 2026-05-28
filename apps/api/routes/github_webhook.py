@@ -6,8 +6,14 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pr_sentinel.core.config import get_settings
 from pr_sentinel.core.models import PullRequestInfo
 from pr_sentinel.engine.pipeline import AnalysisPipeline
-from pr_sentinel.github.client import GitHubClientError
+from pr_sentinel.github.app_auth import (
+    GitHubAppAuthenticator,
+    GitHubAppAuthError,
+    extract_installation_id,
+)
+from pr_sentinel.github.client import GitHubClient, GitHubClientError
 from pr_sentinel.github.comment_publisher import PullRequestCommentPublisher
+from pr_sentinel.github.pr_fetcher import PullRequestFetcher
 from pr_sentinel.github.webhook import verify_github_signature
 from pr_sentinel.llm.client import LlmClientError
 from pr_sentinel.reports.markdown import MarkdownReportGenerator
@@ -28,6 +34,7 @@ async def github_webhook(
     request: Request,
     use_llm: bool = Query(default=False),
     post_comment: bool = Query(default=True),
+    save: bool = Query(default=True),
 ) -> dict[str, Any]:
     settings = get_settings()
     payload_body = await request.body()
@@ -61,26 +68,38 @@ async def github_webhook(
             "reason": f"Unsupported pull_request action: {action}",
         }
 
-    repo_full_name = payload["repository"]["full_name"]
+    repo_full_name = str(payload["repository"]["full_name"])
     pr_number = int(payload["pull_request"]["number"])
 
     try:
+        github_client = _build_webhook_github_client(payload)
+
         pull_request = payload_to_minimal_pr_fetch(
             repo_full_name=repo_full_name,
             pr_number=pr_number,
+            github_client=github_client,
         )
         result = AnalysisPipeline(use_llm=use_llm).analyze(pull_request)
-        analysis_id = persist_analysis_result(result)
+
+        analysis_id: int | None = None
+
+        if save:
+            analysis_id = persist_analysis_result(result)
+
         comment_status: str | None = None
 
         if post_comment:
             markdown_report = MarkdownReportGenerator().generate(result)
-            comment_status = PullRequestCommentPublisher().publish_or_update_comment(
+            comment_status = PullRequestCommentPublisher(
+                github_client=github_client,
+            ).publish_or_update_comment(
                 repo_full_name=repo_full_name,
                 pr_number=pr_number,
                 markdown_body=markdown_report,
             )
 
+    except GitHubAppAuthError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     except GitHubClientError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except LlmClientError as exc:
@@ -99,15 +118,35 @@ async def github_webhook(
         "risk_band": risk.band.value if risk else "LOW",
         "deterministic_score": risk.deterministic_score if risk else 0,
         "ai_adjustment": risk.ai_adjustment if risk else 0,
-        "comment_status": comment_status,
         "analysis_id": analysis_id,
+        "comment_status": comment_status,
+        "auth_mode": get_settings().github_auth_mode,
     }
 
 
-def payload_to_minimal_pr_fetch(repo_full_name: str, pr_number: int) -> PullRequestInfo:
-    from pr_sentinel.github.pr_fetcher import PullRequestFetcher
+def _build_webhook_github_client(payload: dict[str, Any]) -> GitHubClient:
+    settings = get_settings()
+    auth_mode = settings.github_auth_mode.lower().strip()
 
-    return PullRequestFetcher().fetch(
+    if auth_mode == "app":
+        installation_id = extract_installation_id(payload)
+
+        if installation_id is None:
+            raise GitHubAppAuthError(
+                "Webhook payload does not include installation.id required for app mode"
+            )
+
+        return GitHubAppAuthenticator().create_installation_client(installation_id)
+
+    return GitHubClient()
+
+
+def payload_to_minimal_pr_fetch(
+    repo_full_name: str,
+    pr_number: int,
+    github_client: GitHubClient,
+) -> PullRequestInfo:
+    return PullRequestFetcher(github_client=github_client).fetch(
         repo_full_name=repo_full_name,
         pr_number=pr_number,
     )
