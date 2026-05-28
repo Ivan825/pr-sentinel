@@ -1,6 +1,6 @@
 from typing import Any
 
-from pr_sentinel.github.client import GitHubClient
+from pr_sentinel.github.client import GitHubClient, GitHubClientError
 
 PRSENTINEL_COMMENT_MARKER = "<!-- pr-sentinel-report -->"
 
@@ -23,11 +23,16 @@ class PullRequestCommentPublisher:
 
         if existing_comment:
             comment_id = existing_comment["id"]
-            self.github_client.patch(
-                f"/repos/{repo_full_name}/issues/comments/{comment_id}",
-                json_body={"body": body},
-            )
-            return "updated"
+
+            try:
+                self.github_client.patch(
+                    f"/repos/{repo_full_name}/issues/comments/{comment_id}",
+                    json_body={"body": body},
+                )
+                return "updated"
+            except GitHubClientError as exc:
+                if not self._is_cross_actor_comment_update_error(exc):
+                    raise
 
         self.github_client.post(
             f"/repos/{repo_full_name}/issues/{pr_number}/comments",
@@ -44,7 +49,7 @@ class PullRequestCommentPublisher:
             f"/repos/{repo_full_name}/issues/{pr_number}/comments"
         )
 
-        for comment in comments:
+        for comment in reversed(comments):
             body = str(comment.get("body", ""))
 
             if PRSENTINEL_COMMENT_MARKER in body:
@@ -57,3 +62,12 @@ class PullRequestCommentPublisher:
             return markdown_body
 
         return f"{PRSENTINEL_COMMENT_MARKER}\n\n{markdown_body}"
+
+    def _is_cross_actor_comment_update_error(self, exc: GitHubClientError) -> bool:
+        error_text = str(exc).lower()
+
+        return (
+            "403" in error_text
+            and "resource not accessible by integration" in error_text
+            and "issues/comments" in error_text
+        )

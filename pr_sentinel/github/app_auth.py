@@ -1,3 +1,4 @@
+import base64
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -23,10 +24,14 @@ class GitHubAppAuthenticator:
         self,
         app_id: str | None = None,
         private_key_path: str | None = None,
+        private_key_base64: str | None = None,
     ) -> None:
         settings = get_settings()
         self.app_id = app_id or settings.github_app_id
         self.private_key_path = private_key_path or settings.github_app_private_key_path
+        self.private_key_base64 = (
+            private_key_base64 or settings.github_app_private_key_base64
+        )
 
     def create_app_jwt(self) -> str:
         if not self.app_id:
@@ -81,8 +86,26 @@ class GitHubAppAuthenticator:
         return GitHubClient(token=installation_token.token)
 
     def _load_private_key(self) -> str:
+        if self.private_key_base64:
+            try:
+                decoded = base64.b64decode(self.private_key_base64).decode("utf-8")
+            except Exception as exc:
+                raise GitHubAppAuthError(
+                    "GITHUB_APP_PRIVATE_KEY_BASE64 is not valid base64"
+                ) from exc
+
+            if "BEGIN" not in decoded or "PRIVATE KEY" not in decoded:
+                raise GitHubAppAuthError(
+                    "GITHUB_APP_PRIVATE_KEY_BASE64 did not decode to a private key"
+                )
+
+            return decoded
+
         if not self.private_key_path:
-            raise GitHubAppAuthError("GITHUB_APP_PRIVATE_KEY_PATH is missing")
+            raise GitHubAppAuthError(
+                "Either GITHUB_APP_PRIVATE_KEY_PATH or "
+                "GITHUB_APP_PRIVATE_KEY_BASE64 is required"
+            )
 
         path = Path(self.private_key_path).expanduser()
 

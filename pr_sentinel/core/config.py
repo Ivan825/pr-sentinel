@@ -22,6 +22,10 @@ class Settings(BaseSettings):
         default=None,
         alias="GITHUB_APP_PRIVATE_KEY_PATH",
     )
+    github_app_private_key_base64: str | None = Field(
+        default=None,
+        alias="GITHUB_APP_PRIVATE_KEY_BASE64",
+    )
     github_webhook_secret: str | None = Field(default=None, alias="GITHUB_WEBHOOK_SECRET")
 
     llm_provider: str = Field(default="disabled", alias="LLM_PROVIDER")
