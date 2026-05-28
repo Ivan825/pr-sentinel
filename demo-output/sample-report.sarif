@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "PRSentinel",
+          "informationUri": "https://github.com",
+          "rules": [
+            {
+              "id": "AI_SEMANTIC_001",
+              "name": "Potential authentication bypass",
+              "shortDescription": {
+                "text": "Potential authentication bypass"
+              },
+              "fullDescription": {
+                "text": "The isAllowed method now always returns true, potentially allowing unauthorized access."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              },
+              "properties": {
+                "category": "AUTH",
+                "source": "AI_ASSISTED"
+              }
+            },
+            {
+              "id": "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST",
+              "name": "Risky source changed without matching test",
+              "shortDescription": {
+                "text": "Risky source changed without matching test"
+              },
+              "fullDescription": {
+                "text": "Risky source file changed, but no directly matching test file was modified in this PR."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "TEST",
+                "source": "DETERMINISTIC"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST",
+          "level": "warning",
+          "message": {
+            "text": "Risky source file changed, but no directly matching test file was modified in this PR."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "title": "Risky source changed without matching test",
+            "category": "TEST",
+            "severity": "MEDIUM",
+            "source": "DETERMINISTIC",
+            "confidence": 0.72,
+            "evidence": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterTest.java, package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterIT.java",
+            "recommendation": "Add or update relevant unit/integration tests, or document why existing tests already cover this change."
+          }
+        },
+        {
+          "ruleId": "AI_SEMANTIC_001",
+          "level": "error",
+          "message": {
+            "text": "The isAllowed method now always returns true, potentially allowing unauthorized access."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java"
+                },
+                "region": {
+                  "startLine": 11
+                }
+              }
+            }
+          ],
+          "properties": {
+            "title": "Potential authentication bypass",
+            "category": "AUTH",
+            "severity": "HIGH",
+            "source": "AI_ASSISTED",
+            "confidence": 0.8,
+            "evidence": "    return true;",
+            "recommendation": "Review the AuthFilter class to ensure it correctly enforces authentication policies."
+          }
+        }
+      ],
+      "properties": {
+        "repository": "Ivan825/prsentinel-demo",
+        "pullRequest": 7,
+        "pullRequestTitle": "Fix AuthFilter class and isAllowed method",
+        "author": "Ivan825",
+        "baseBranch": "main",
+        "headBranch": "test-risky-change",
+        "riskScore": 39,
+        "riskBand": "MEDIUM",
+        "deterministicScore": 29,
+        "aiAdjustment": 10
+      }
+    }
+  ]
+}
