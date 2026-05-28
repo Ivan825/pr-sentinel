@@ -15,6 +15,7 @@ from pr_sentinel.reports.analysis_console import print_analysis_result
 from pr_sentinel.reports.console import print_pull_request_summary
 from pr_sentinel.reports.json_report import JsonReportGenerator
 from pr_sentinel.reports.markdown import MarkdownReportGenerator
+from pr_sentinel.reports.sarif import SarifReportGenerator
 from pr_sentinel.storage.analysis_repository import AnalysisRepository
 from pr_sentinel.storage.database import SessionLocal
 from pr_sentinel.storage.persistence import persist_analysis_result
@@ -31,6 +32,7 @@ class OutputFormat(StrEnum):
     CONSOLE = "console"
     MARKDOWN = "markdown"
     JSON = "json"
+    SARIF = "sarif"
 
 
 @app.command()
@@ -123,7 +125,7 @@ def analyze_pr(
         typer.Option(
             "--format",
             "-f",
-            help="Output format: console, markdown, or json.",
+            help="Output format: console, markdown, json, or sarif.",
         ),
     ] = OutputFormat.CONSOLE,
     output_path: Annotated[
@@ -131,7 +133,7 @@ def analyze_pr(
         typer.Option(
             "--out",
             "-o",
-            help="Optional output file path for markdown/json reports.",
+            help="Optional output file path for markdown/json/sarif reports.",
         ),
     ] = None,
     post_comment: Annotated[
@@ -195,8 +197,10 @@ def analyze_pr(
 
     if output_format == OutputFormat.MARKDOWN:
         content = markdown_report
-    else:
+    elif output_format == OutputFormat.JSON:
         content = JsonReportGenerator().generate_json(result)
+    else:
+        content = SarifReportGenerator().generate_json(result)
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)

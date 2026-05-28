@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "PRSentinel",
+          "informationUri": "https://github.com",
+          "rules": [
+            {
+              "id": "AI_SEMANTIC_001",
+              "name": "Missing test for new AuthFilter logic",
+              "shortDescription": {
+                "text": "Missing test for new AuthFilter logic"
+              },
+              "fullDescription": {
+                "text": "New logic was added to AuthFilter without a matching test. This may indicate a semantic risk."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "TEST",
+                "source": "AI_ASSISTED"
+              }
+            },
+            {
+              "id": "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST",
+              "name": "Risky source changed without matching test",
+              "shortDescription": {
+                "text": "Risky source changed without matching test"
+              },
+              "fullDescription": {
+                "text": "Risky source file changed, but no directly matching test file was modified in this PR."
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              },
+              "properties": {
+                "category": "TEST",
+                "source": "DETERMINISTIC"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST",
+          "level": "warning",
+          "message": {
+            "text": "Risky source file changed, but no directly matching test file was modified in this PR."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "title": "Risky source changed without matching test",
+            "category": "TEST",
+            "severity": "MEDIUM",
+            "source": "DETERMINISTIC",
+            "confidence": 0.72,
+            "evidence": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterTest.java, package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /AuthfilterIT.java",
+            "recommendation": "Add or update relevant unit/integration tests, or document why existing tests already cover this change."
+          }
+        },
+        {
+          "ruleId": "AI_SEMANTIC_001",
+          "level": "warning",
+          "message": {
+            "text": "New logic was added to AuthFilter without a matching test. This may indicate a semantic risk."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java"
+                }
+              }
+            }
+          ],
+          "properties": {
+            "title": "Missing test for new AuthFilter logic",
+            "category": "TEST",
+            "severity": "MEDIUM",
+            "source": "AI_ASSISTED",
+            "confidence": 0.8,
+            "evidence": "package com.app.security;  public class AuthFilter {     public boolean isAllowed(String user) {         /Authfilter.java",
+            "recommendation": "Add a test for the new AuthFilter logic to ensure it behaves correctly."
+          }
+        }
+      ],
+      "properties": {
+        "repository": "Ivan825/prsentinel-demo",
+        "pullRequest": 3,
+        "pullRequestTitle": "Update Authfilter.java",
+        "author": "Ivan825",
+        "baseBranch": "main",
+        "headBranch": "test-risky-change",
+        "riskScore": 24,
+        "riskBand": "LOW",
+        "deterministicScore": 19,
+        "aiAdjustment": 5
+      }
+    }
+  ]
+}
