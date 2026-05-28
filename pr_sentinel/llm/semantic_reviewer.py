@@ -37,6 +37,20 @@ class SemanticReviewer:
         "TESTING": "TEST",
     }
 
+    DUPLICATE_TEST_KEYWORDS = (
+        "missing test",
+        "without matching test",
+        "no matching test",
+        "no test",
+        "add test",
+        "add a test",
+        "add tests",
+        "unit test",
+        "integration test",
+        "test coverage",
+        "not covered by tests",
+    )
+
     def __init__(
         self,
         context_builder: LlmContextBuilder | None = None,
@@ -186,7 +200,166 @@ class SemanticReviewer:
         ):
             return False
 
-        return not self._looks_like_low_value_comment_finding(finding)
+        if self._looks_like_low_value_comment_finding(finding):
+            return False
+
+        return not self._duplicates_deterministic_finding(result, finding)
+
+    def _duplicates_deterministic_finding(
+        self,
+        result: AnalysisResult,
+        finding: AiSemanticFinding,
+    ) -> bool:
+        if self._is_test_gap_finding(finding):
+            return self._deterministic_test_gap_exists_for_file(result, finding.file_path)
+
+        return self._same_category_same_file_same_theme_exists(result, finding)
+
+    def _is_test_gap_finding(self, finding: AiSemanticFinding) -> bool:
+        text = " ".join(
+            [
+                finding.title,
+                finding.message,
+                finding.evidence,
+                finding.recommendation,
+            ]
+        ).lower()
+
+        return finding.category == FindingCategory.TEST or any(
+            keyword in text for keyword in self.DUPLICATE_TEST_KEYWORDS
+        )
+
+    def _deterministic_test_gap_exists_for_file(
+        self,
+        result: AnalysisResult,
+        file_path: str,
+    ) -> bool:
+        for deterministic_finding in result.findings:
+            if deterministic_finding.source != "DETERMINISTIC":
+                continue
+
+            if deterministic_finding.file_path != file_path:
+                continue
+
+            if deterministic_finding.rule_id == "TEST_001_RISKY_SOURCE_WITHOUT_MATCHING_TEST":
+                return True
+
+            deterministic_text = " ".join(
+                [
+                    deterministic_finding.title,
+                    deterministic_finding.message,
+                    deterministic_finding.evidence or "",
+                    deterministic_finding.recommendation or "",
+                ]
+            ).lower()
+
+            if any(keyword in deterministic_text for keyword in self.DUPLICATE_TEST_KEYWORDS):
+                return True
+
+        for recommendation in result.test_recommendations:
+            if recommendation.source_file != file_path:
+                continue
+
+            recommendation_text = " ".join(
+                [
+                    recommendation.reason,
+                    " ".join(recommendation.recommended_tests),
+                ]
+            ).lower()
+
+            if any(keyword in recommendation_text for keyword in self.DUPLICATE_TEST_KEYWORDS):
+                return True
+
+        return False
+
+    def _same_category_same_file_same_theme_exists(
+        self,
+        result: AnalysisResult,
+        finding: AiSemanticFinding,
+    ) -> bool:
+        ai_text = self._normalize_text(
+            " ".join(
+                [
+                    finding.title,
+                    finding.message,
+                    finding.evidence,
+                    finding.recommendation,
+                ]
+            )
+        )
+
+        if not ai_text:
+            return False
+
+        for deterministic_finding in result.findings:
+            if deterministic_finding.source != "DETERMINISTIC":
+                continue
+
+            if deterministic_finding.file_path != finding.file_path:
+                continue
+
+            if deterministic_finding.category != finding.category:
+                continue
+
+            deterministic_text = self._normalize_text(
+                " ".join(
+                    [
+                        deterministic_finding.title,
+                        deterministic_finding.message,
+                        deterministic_finding.evidence or "",
+                        deterministic_finding.recommendation or "",
+                    ]
+                )
+            )
+
+            if self._jaccard_similarity(ai_text, deterministic_text) >= 0.55:
+                return True
+
+        return False
+
+    def _normalize_text(self, text: str) -> set[str]:
+        stop_words = {
+            "a",
+            "an",
+            "and",
+            "are",
+            "as",
+            "be",
+            "by",
+            "for",
+            "from",
+            "in",
+            "is",
+            "it",
+            "of",
+            "on",
+            "or",
+            "that",
+            "the",
+            "this",
+            "to",
+            "was",
+            "were",
+            "with",
+        }
+
+        cleaned_tokens: set[str] = set()
+
+        for raw_token in text.lower().replace("_", " ").replace("-", " ").split():
+            token = "".join(character for character in raw_token if character.isalnum())
+
+            if not token or token in stop_words or len(token) <= 2:
+                continue
+
+            cleaned_tokens.add(token)
+
+        return cleaned_tokens
+
+    def _jaccard_similarity(self, left: set[str], right: set[str]) -> float:
+        if not left or not right:
+            return 0.0
+
+        return len(left.intersection(right)) / len(left.union(right))
 
     def _looks_like_low_value_comment_finding(self, finding: AiSemanticFinding) -> bool:
         evidence = finding.evidence.strip().lower()

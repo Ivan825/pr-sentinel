@@ -8,7 +8,11 @@ Rules:
 - Only report risks supported by the provided changed lines.
 - Do not invent files, line numbers, APIs, project behavior, dependencies, or missing context.
 - Prefer fewer high-quality findings over many speculative findings.
-- Do not repeat deterministic findings unless you add semantic reasoning beyond them.
+- Do not repeat deterministic findings.
+- Do not report a missing-test finding if deterministic findings or test recommendations
+  already mention missing tests for the same file.
+- Do not report generic "add tests" findings unless there is a specific semantic behavior
+  that needs a targeted test.
 - Every finding must include concrete evidence from the diff.
 - If there is insufficient evidence, return no finding.
 - Use exactly one category per finding.
@@ -53,6 +57,7 @@ Important:
 - Pick the single best category.
 - Confidence must be between 0 and 1.
 - Use confidence below 0.55 when the finding is speculative.
+- If a deterministic finding already covers the issue, do not repeat it.
 - If no evidence-backed finding exists, return an empty findings list.
 
 Pull request context:
